@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist" # Use 'build' if using Create React App
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  NODE_VERSION = "20"

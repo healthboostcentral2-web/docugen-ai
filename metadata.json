@@ -1,0 +1,8 @@
+{
+  "name": "DocuGen AI",
+  "description": "A professional AI-powered video generation platform. Create documentaries, marketing videos, and educational content from a simple prompt.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
