@@ -1,16 +1,7 @@
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+
 import { Scene, VideoStyle, VideoDuration } from "../types";
 
 // Initialize Gemini Client
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    console.error("Critical: API_KEY is missing. Please set 'API_KEY' in your Netlify Site Settings > Build & Deploy > Environment.");
-    throw new Error("API_KEY environment variable is missing. Check Netlify configuration.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
 /**
  * Helper to clean JSON string from Markdown code blocks
  */
@@ -32,7 +23,7 @@ export const generateScript = async (
   style: VideoStyle, 
   duration: VideoDuration
 ): Promise<Scene[]> => {
-  const ai = getClient();
+  
   
   let sceneCount = 5;
   let detailLevel = "concise";
@@ -58,7 +49,7 @@ export const generateScript = async (
     Target Length: ${duration} (Approx ${sceneCount} scenes).
     Detail Level: ${detailLevel}.
 
-    Structure the response as a JSON array of scenes. 
+    Structure the data as a JSON array of scenes. 
     Each scene must have:
     - "text": The narration text in ${outputLanguage}. Ensure the narration flows naturally between scenes. For 'long' duration, ensure paragraphs are substantial.
     - "visualPrompt": A detailed, high-quality image generation prompt to visually represent this scene. NOTE: The visual prompt should be in ENGLISH for best image generation results, regardless of the video language. Include camera angles and lighting styles suited for a ${style} video.
@@ -67,26 +58,19 @@ export const generateScript = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              text: { type: Type.STRING },
-              visualPrompt: { type: Type.STRING }
-            },
-            required: ["text", "visualPrompt"]
-          }
-        }
-      }
-    });
+    const data = await fetch("/.netlify/functions/gemini", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    contents: prompt
+  })
+});
 
-    const cleanedText = cleanJsonString(response.text || "[]");
+const data = await data.json();
+
+    const cleanedText = cleanJsonString(data.text || "[]");
     const rawScenes = JSON.parse(cleanedText);
     
     return rawScenes.map((s: any, index: number) => ({
@@ -132,7 +116,7 @@ export const parseManualScript = async (
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const data = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: prompt,
             config: {
@@ -151,7 +135,7 @@ export const parseManualScript = async (
             }
         });
         
-        const cleanedText = cleanJsonString(response.text || "[]");
+        const cleanedText = cleanJsonString(data.text || "[]");
         const rawScenes = JSON.parse(cleanedText);
 
         return rawScenes.map((s: any, index: number) => ({
@@ -187,7 +171,7 @@ export const generateSpeech = async (text: string, voice: string = 'Kore'): Prom
   const ai = getClient();
   
   try {
-    const response = await ai.models.generateContent({
+    const data = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text }] }],
       config: {
@@ -200,7 +184,7 @@ export const generateSpeech = async (text: string, voice: string = 'Kore'): Prom
       },
     });
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    const base64Audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Audio) throw new Error("No audio data returned");
 
     return `data:audio/mp3;base64,${base64Audio}`;
@@ -220,7 +204,7 @@ export const generateSceneImage = async (prompt: string, aspectRatio: string = "
   const ai = getClient();
 
   try {
-    const response = await ai.models.generateContent({
+    const data = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
       contents: {
         parts: [{ text: prompt }],
@@ -232,7 +216,7 @@ export const generateSceneImage = async (prompt: string, aspectRatio: string = "
       }
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
+    for (const part of data.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
       }
