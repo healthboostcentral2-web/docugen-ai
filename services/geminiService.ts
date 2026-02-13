@@ -44,13 +44,11 @@ Return JSON array:
 
   const data = await res.json();
 
+  const raw =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
   try {
-    const raw =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-
-    const clean = raw.replace(/```json|```/g, "").trim();
-
-    return JSON.parse(clean);
+    return JSON.parse(raw.replace(/```json|```/g, "").trim());
   } catch {
     return [];
   }
