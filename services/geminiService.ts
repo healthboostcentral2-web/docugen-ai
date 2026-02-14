@@ -27,19 +27,14 @@ Return JSON array:
 `;
 
   const res = await fetch("/.netlify/functions/gemini", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ]
-    })
-  });
-
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    prompt: prompt
+  })
+});
   if (!res.ok) throw new Error("API failed");
 
   const data = await res.json();
