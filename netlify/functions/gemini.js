@@ -1,6 +1,7 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export async function handler(event) {
   try {
-
     if (!event.body) {
       return {
         statusCode: 400,
@@ -8,41 +9,40 @@ export async function handler(event) {
       };
     }
 
-    const body = typeof event.body === "string"
-      ? JSON.parse(event.body)
-      : event.body;
+    const body = JSON.parse(event.body);
 
-    const prompt = body.prompt;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    if (!prompt) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Prompt missing" })
-      };
-    }
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash"
+    });
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      }
-    );
-
-    const data = await response.json();
+    const result = await model.generateContent(body.contents);
+    const response = await result.response;
+    const text = response.text();
 
     return {
       statusCode: 200,
-      body: JSON.stringify(data)
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        candidates: [
+          {
+            content: {
+              parts: [{ text }]
+            }
+          }
+        ]
+      })
     };
 
-  } catch (err) {
+  } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({
+        error: error.message
+      })
     };
   }
 }
