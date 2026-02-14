@@ -1,5 +1,6 @@
 export async function handler(event) {
   try {
+
     if (!event.body) {
       return {
         statusCode: 400,
@@ -7,7 +8,18 @@ export async function handler(event) {
       };
     }
 
-    const { prompt } = JSON.parse(event.body);
+    const body = typeof event.body === "string"
+      ? JSON.parse(event.body)
+      : event.body;
+
+    const prompt = body.prompt;
+
+    if (!prompt) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Prompt missing" })
+      };
+    }
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
@@ -15,11 +27,7 @@ export async function handler(event) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ]
+          contents: [{ parts: [{ text: prompt }] }]
         })
       }
     );
@@ -31,10 +39,10 @@ export async function handler(event) {
       body: JSON.stringify(data)
     };
 
-  } catch (error) {
+  } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: err.message })
     };
   }
 }
